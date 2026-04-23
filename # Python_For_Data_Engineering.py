@@ -94,3 +94,24 @@ print(squares)
 even_numbers = [x for x in range(10) if x % 2 == 0]
 print(even_numbers)
 
+# oop_basics.py
+
+class Employee:
+    def __init__(self, name: str, role: str, salary: float) -> None:
+        self.name = name
+        self.role = role
+        self.salary = salary
+
+    def display_info(self) -> None:
+        print(f"Name: {self.name}, Role: {self.role}, Salary: {self.salary}")
+
+    def give_bonus(self, amount: float) -> None:
+        self.salary += amount
+
+# Create object
+emp1 = Employee("Venkat", "Data Engineer", 90000)
+emp1.display_info()
+
+emp1.give_bonus(5000)
+emp1.display_info()
+
