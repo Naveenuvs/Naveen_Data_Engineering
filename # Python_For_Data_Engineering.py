@@ -115,3 +115,162 @@ emp1.display_info()
 emp1.give_bonus(5000)
 emp1.display_info()
 
+# file_handling.py
+
+# Writing to a file
+with open("sample.txt", "w", encoding="utf-8") as file:
+    file.write("Hello, this is a sample file.\n")
+    file.write("Python file handling is easy.\n")
+
+# Reading from a file
+with open("sample.txt", "r", encoding="utf-8") as file:
+    content = file.read()
+    print(content)
+import csv
+
+# Data to write
+rows = [
+    ["id", "name", "department"],
+    [1, "Venkat", "Data Engineering"],
+    [2, "Naveen", "Backend"],
+    [3, "Arjun", "Analytics"]
+]
+
+# Write CSV
+with open("employees.csv", "w", newline="", encoding="utf-8") as file:
+    writer = csv.writer(file)
+    writer.writerows(rows)
+
+# Read CSV
+with open("employees.csv", "r", encoding="utf-8") as file:
+    reader = csv.reader(file)
+    for row in reader:
+        print(row)
+# csv_dict_example.py
+
+import csv
+
+data = [
+    {"id": 1, "name": "Venkat", "skill": "Python"},
+    {"id": 2, "name": "Naveen", "skill": "SQL"}
+]
+
+# Write
+with open("users.csv", "w", newline="", encoding="utf-8") as file:
+    fieldnames = ["id", "name", "skill"]
+    writer = csv.DictWriter(file, fieldnames=fieldnames)
+    writer.writeheader()
+    writer.writerows(data)
+
+# Read
+with open("users.csv", "r", encoding="utf-8") as file:
+    reader = csv.DictReader(file)
+    for row in reader:
+        print(row["name"], row["skill"])
+
+# json_handling.py
+
+import json
+
+employee = {
+    "id": 101,
+    "name": "Venkat",
+    "role": "Data Engineer",
+    "skills": ["Python", "SQL", "AWS"]
+}
+
+# Write JSON
+with open("employee.json", "w", encoding="utf-8") as file:
+    json.dump(employee, file, indent=4)
+
+# Read JSON
+with open("employee.json", "r", encoding="utf-8") as file:
+    data = json.load(file)
+    print(data)
+    print(data["name"])
+    print(data["skills"])
+
+    # exception_handling.py
+
+def divide_numbers(a: float, b: float) -> float:
+    try:
+        result = a / b
+        return result
+    except ZeroDivisionError:
+        print("Error: Cannot divide by zero.")
+        return 0
+    except TypeError:
+        print("Error: Invalid input type.")
+        return 0
+    finally:
+        print("Execution completed.")
+
+print(divide_numbers(10, 2))
+print(divide_numbers(10, 0))
+class InvalidAgeError(Exception):
+    pass
+
+def check_age(age: int) -> None:
+    if age < 18:
+        raise InvalidAgeError("Age must be at least 18.")
+    print("Eligible")
+
+try:
+    check_age(16)
+except InvalidAgeError as error:
+    print("Caught custom exception:", error)
+# logging_basics.py
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logging.debug("This is a debug message")
+logging.info("Script started")
+logging.warning("This is a warning")
+logging.error("This is an error message")
+logging.critical("Critical issue occurred")
+
+# logging_basics.py
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logging.debug("This is a debug message")
+logging.info("Script started")
+logging.warning("This is a warning")
+logging.error("This is an error message")
+logging.critical("Critical issue occurred")
+# Logging in functions
+# Python
+
+
+# Run
+# logging_example.py
+
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+def process_file(filename: str) -> None:
+    logging.info("Processing file: %s", filename)
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            content = file.read()
+            logging.info("File content length: %d", len(content))
+    except FileNotFoundError:
+        logging.error("File not found: %s", filename)
+
+process_file("sample.txt")
+process_file("missing.txt")
+
