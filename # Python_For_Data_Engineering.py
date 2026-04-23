@@ -85,7 +85,7 @@ print(coordinates[0])
 
 # Set
 numbers = {1, 2, 2, 3, 4, 4}
-print(numbers)  # duplicates removed
+print(set(numbers))  # duplicates removed
 
 # List comprehension
 squares = [x * x for x in range(1, 6)]
