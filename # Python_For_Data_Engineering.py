@@ -274,3 +274,268 @@ def process_file(filename: str) -> None:
 process_file("sample.txt")
 process_file("missing.txt")
 
+import csv
+import json
+
+def csv_to_json(input_csv, output_json):
+    with open(input_csv, "r", newline="") as csv_file:
+        reader = csv.DictReader(csv_file)
+
+        # Standardize headers
+        reader.fieldnames = [
+            header.strip().lower().replace(" ", "_")
+            for header in reader.fieldnames
+        ]
+
+        records = []
+
+        for row in reader:
+            clean_row = {}
+
+            for key, value in row.items():
+                if value is None or value.strip() == "":
+                    clean_row[key] = ""
+                else:
+                    clean_row[key] = value.strip()
+
+            records.append(clean_row)
+
+    with open(output_json, "w") as json_file:
+        json.dump(records, json_file, indent=4)
+
+    print("CSV converted to JSON successfully")
+
+
+csv_to_json("input.csv", "output.json")
+
+def validate_schema_and_count(records, expected_columns, min_rows=1):
+    if len(records) < min_rows:
+        raise ValueError("Row count validation failed")
+
+    actual_columns = list(records[0].keys())
+
+    if actual_columns != expected_columns:
+        raise ValueError("Schema validation failed")
+
+    return True
+
+import csv
+import json
+import logging
+
+logging.basicConfig(
+    filename="bad_records.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(message)s"
+)
+
+def process_csv(input_csv, output_json, bad_json):
+    valid_records = []
+    bad_records = []
+
+    with open(input_csv, "r", newline="") as csv_file:
+        reader = csv.DictReader(csv_file)
+
+        reader.fieldnames = [
+            header.strip().lower().replace(" ", "_")
+            for header in reader.fieldnames
+        ]
+
+        for row_number, row in enumerate(reader, start=2):
+            try:
+                clean_row = {}
+
+                for key, value in row.items():
+                    clean_row[key] = value.strip() if value else ""
+
+                if clean_row["id"] == "" or clean_row["email"] == "":
+                    raise ValueError("Missing required id or email")
+
+                valid_records.append(clean_row)
+
+            except Exception as error:
+                row["error"] = str(error)
+                bad_records.append(row)
+                logging.info(f"Bad row {row_number}: {row}")
+
+    with open(output_json, "w") as file:
+        json.dump(valid_records, file, indent=4)
+
+    with open(bad_json, "w") as file:
+        json.dump(bad_records, file, indent=4)
+
+    print("Processing completed")
+
+
+process_csv("input.csv", "output.json", "bad_records.json")
+
+import csv
+import json
+import logging
+
+# ---------------- Logging Setup ----------------
+logging.basicConfig(
+    filename="bad_rows.log",
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+# ---------------- Vendor Column Mapping ----------------
+COLUMN_MAPPING = {
+    "product id": "product_id",
+    "product_id": "product_id",
+    "sku": "product_id",
+    "item_id": "product_id",
+
+    "product name": "product_name",
+    "name": "product_name",
+    "item_name": "product_name",
+
+    "price": "price",
+    "cost": "price",
+    "amount": "price",
+
+    "category": "category",
+    "product_category": "category",
+
+    "description": "description",
+    "details": "description",
+
+    "brand": "brand",
+    "manufacturer": "brand"
+}
+
+REQUIRED_COLUMNS = ["product_id", "product_name", "price"]
+
+DEFAULT_VALUES = {
+    "category": "Unknown",
+    "description": "",
+    "brand": "Generic"
+}
+
+FINAL_COLUMNS = [
+    "product_id",
+    "product_name",
+    "price",
+    "category",
+    "description",
+    "brand"
+]
+
+
+# ---------------- Standardize Header ----------------
+def standardize_header(header):
+    header = header.strip().lower().replace("-", " ").replace("_", " ")
+    return COLUMN_MAPPING.get(header, header.replace(" ", "_"))
+
+
+# ---------------- Validate Row ----------------
+def validate_row(row):
+    for column in REQUIRED_COLUMNS:
+        if column not in row or row[column] == "":
+            raise ValueError(f"Missing required field: {column}")
+
+    try:
+        row["price"] = float(row["price"])
+    except ValueError:
+        raise ValueError("Invalid price value")
+
+    return True
+
+
+# ---------------- Process Single Vendor File ----------------
+def process_vendor_file(file_path, seen_products):
+    clean_records = []
+    bad_records = []
+
+    with open(file_path, "r", newline="", encoding="utf-8") as csv_file:
+        reader = csv.DictReader(csv_file)
+
+        reader.fieldnames = [
+            standardize_header(header)
+            for header in reader.fieldnames
+        ]
+
+        for row_number, row in enumerate(reader, start=2):
+            try:
+                clean_row = {}
+
+                for key, value in row.items():
+                    clean_row[key] = value.strip() if value else ""
+
+                validate_row(clean_row)
+
+                product_id = clean_row["product_id"]
+
+                if product_id in seen_products:
+                    continue
+
+                seen_products.add(product_id)
+
+                for column, default_value in DEFAULT_VALUES.items():
+                    if clean_row.get(column, "") == "":
+                        clean_row[column] = default_value
+
+                final_row = {
+                    column: clean_row.get(column, "")
+                    for column in FINAL_COLUMNS
+                }
+
+                clean_records.append(final_row)
+
+            except Exception as error:
+                row["error"] = str(error)
+                row["source_file"] = file_path
+                row["row_number"] = row_number
+                bad_records.append(row)
+
+                logging.info(f"Bad row in {file_path}, row {row_number}: {row}")
+
+    return clean_records, bad_records
+
+
+# ---------------- Main Ingestion Utility ----------------
+def ingest_product_catalogs(input_files, output_csv, bad_rows_file):
+    all_clean_records = []
+    all_bad_records = []
+    seen_products = set()
+
+    for file_path in input_files:
+        clean_records, bad_records = process_vendor_file(
+            file_path,
+            seen_products
+        )
+
+        all_clean_records.extend(clean_records)
+        all_bad_records.extend(bad_records)
+
+    with open(output_csv, "w", newline="", encoding="utf-8") as csv_file:
+        writer = csv.DictWriter(csv_file, fieldnames=FINAL_COLUMNS)
+        writer.writeheader()
+        writer.writerows(all_clean_records)
+
+    with open(bad_rows_file, "w", encoding="utf-8") as json_file:
+        json.dump(all_bad_records, json_file, indent=4)
+
+    print("Product catalog ingestion completed")
+    print(f"Clean records written to: {output_csv}")
+    print(f"Bad rows written to: {bad_rows_file}")
+    print(f"Total clean records: {len(all_clean_records)}")
+    print(f"Total bad records: {len(all_bad_records)}")
+
+
+# ---------------- Example Usage ----------------
+vendor_files = [
+    "vendor1.csv",
+    "vendor2.csv",
+    "vendor3.csv",
+    "vendor4.csv",
+    "vendor5.csv"
+]
+
+ingest_product_catalogs(
+    input_files=vendor_files,
+    output_csv="clean_product_catalog.csv",
+    bad_rows_file="bad_rows.json"
+)
+
